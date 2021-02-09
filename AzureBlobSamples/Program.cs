@@ -3,6 +3,7 @@ using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
 using Microsoft.Extensions.Configuration;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
 
@@ -21,6 +22,7 @@ namespace AzureBlobSamples
             CreateDemo();
             await CreateContainer();
             await UploadBlob();
+            await SetMetadata();
             await ListBlobs();
             await DownloadBlob();
             await DeleteContainer();
@@ -55,9 +57,22 @@ namespace AzureBlobSamples
         {
             string path = "Data";
             blobClient = containerClient.GetBlobClient(fileName);
-
+            
             string localFilePath = Path.Combine(path, fileName);
             var response = await blobClient.UploadAsync(localFilePath, overwrite: true);
+        }
+
+        private static async Task SetMetadata()
+        {
+            blobClient = containerClient.GetBlobClient(fileName);
+
+            IDictionary<string, string> metadata = new Dictionary<string, string>();
+
+            metadata.Add("blobType", "picture");
+
+            metadata["description"] = "Itixo logo.";
+
+            await blobClient.SetMetadataAsync(metadata);
         }
 
         private static async Task ListBlobs()
@@ -65,7 +80,10 @@ namespace AzureBlobSamples
             await foreach (BlobItem blobItem in containerClient.GetBlobsAsync())
             {
                 Console.WriteLine($"Blobs in container {containerClient.Name}:");
-                Console.WriteLine("\t" + blobItem.Name);
+                Console.WriteLine($"\tName: {blobItem.Name}");
+                Console.WriteLine($"\tETag: {blobItem.Properties.ETag}");
+                Console.WriteLine($"\tLastModified: {blobItem.Properties.LastModified}");
+                Console.WriteLine();
             }
         }
 
