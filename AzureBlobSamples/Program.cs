@@ -1,6 +1,7 @@
 ﻿using Azure.Storage;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
+using Azure.Storage.Blobs.Specialized;
 using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
@@ -20,12 +21,13 @@ namespace AzureBlobSamples
         static async Task Main()
         {
             CreateDemo();
-            await CreateContainer();
+            //await CreateContainer();
             await UploadBlob();
             await SetMetadata();
+            await CopyBlob();
             await ListBlobs();
-            await DownloadBlob();
-            await DeleteContainer();
+            //await DownloadBlob();
+            //await DeleteContainer();
         }
 
         private static IConfiguration GetConfiguration()
@@ -49,7 +51,7 @@ namespace AzureBlobSamples
 
         private static async Task CreateContainer()
         {
-            string containerName2 = "pictures-from-portal-2";
+            string containerName2 = "pictures-from-portal";
             containerClient = await blobServiceClient.CreateBlobContainerAsync(containerName2);
         }
 
@@ -73,6 +75,49 @@ namespace AzureBlobSamples
             metadata["description"] = "Itixo logo.";
 
             await blobClient.SetMetadataAsync(metadata);
+        }
+
+        private static async Task CopyBlob()
+        {
+            blobClient = containerClient.GetBlobClient(fileName);
+            if (await blobClient.ExistsAsync())
+            {
+                BlobLeaseClient leaseClient = blobClient.GetBlobLeaseClient();
+
+                // Specifying -1 for the lease interval creates an infinite lease.
+                await leaseClient.AcquireAsync(TimeSpan.FromSeconds(-1));
+
+                // Get the source blob's properties and display the lease state.
+                BlobProperties sourceProperties = await blobClient.GetPropertiesAsync();
+                Console.WriteLine($"Lease state: {sourceProperties.LeaseState}");
+
+                // Get a BlobClient representing the destination blob with a unique name.
+                BlobClient destBlob = containerClient.GetBlobClient(Guid.NewGuid() + "-" + blobClient.Name);
+
+                // Start the copy operation.
+                await destBlob.StartCopyFromUriAsync(blobClient.Uri);
+
+                // Get the destination blob's properties and display the copy status.
+                BlobProperties destProperties = await destBlob.GetPropertiesAsync();
+
+                Console.WriteLine($"Copy status: {destProperties.CopyStatus}");
+                Console.WriteLine($"Copy progress: {destProperties.CopyProgress}");
+                Console.WriteLine($"Completion time: {destProperties.CopyCompletedOn}");
+                Console.WriteLine($"Total bytes: {destProperties.ContentLength}");
+
+                // Update the source blob's properties.
+                sourceProperties = await blobClient.GetPropertiesAsync();
+
+                if (sourceProperties.LeaseState == LeaseState.Leased)
+                {
+                    // Break the lease on the source blob.
+                    await leaseClient.BreakAsync();
+
+                    // Update the source blob's properties to check the lease state.
+                    sourceProperties = await blobClient.GetPropertiesAsync();
+                    Console.WriteLine($"Lease state: {sourceProperties.LeaseState}");
+                }
+            }
         }
 
         private static async Task ListBlobs()
