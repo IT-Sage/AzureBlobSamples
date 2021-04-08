@@ -17,15 +17,15 @@ namespace AzureBlobSamples
         private static BlobClient blobClient;
 
         private const string fileName = "itixo-logo-default.png";
-
+        private const string containerName = "pictures-from-portal-demo";
         static async Task Main()
         {
             CreateDemo();
             //await CreateContainer();
-            await UploadBlob();
-            await SetMetadata();
-            await CopyBlob();
-            await ListBlobs();
+            //await UploadBlob();
+            //await SetMetadata();
+            //await CopyBlob();
+            //await ListBlobs();
             //await DownloadBlob();
             //await DeleteContainer();
         }
@@ -45,14 +45,13 @@ namespace AzureBlobSamples
             string connectionString = configuration.GetConnectionString("az204storagesample");
 
             blobServiceClient = new BlobServiceClient(connectionString);
-            string containerName = "pictures-from-portal";
+            
             containerClient = blobServiceClient.GetBlobContainerClient(containerName);
         }
 
         private static async Task CreateContainer()
         {
-            string containerName2 = "pictures-from-portal";
-            containerClient = await blobServiceClient.CreateBlobContainerAsync(containerName2);
+            containerClient = await blobServiceClient.CreateBlobContainerAsync(containerName);
         }
 
         private static async Task UploadBlob()
