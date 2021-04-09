@@ -60,7 +60,8 @@ namespace AzureBlobSamples
             blobClient = containerClient.GetBlobClient(fileName);
             
             string localFilePath = Path.Combine(path, fileName);
-            var response = await blobClient.UploadAsync(localFilePath, overwrite: true);
+            var blobHttpHeaders = new BlobHttpHeaders { ContentType = "image/png" };
+            var response = await blobClient.UploadAsync(localFilePath, httpHeaders: blobHttpHeaders);
         }
 
         private static async Task SetMetadata()
